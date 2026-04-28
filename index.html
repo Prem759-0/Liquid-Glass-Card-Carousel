@@ -136,6 +136,48 @@
     card.style.setProperty('--g2', colors[i][1]);
     carousel.appendChild(card);
   }
+      // --- Physics state ---
+  let xOffset = 0;            // current translation (pixels)
+  let velocity = 0;
+  let isDragging = false;
+  let lastPointerX = 0;
+  let lastTime = 0;
+
+  const friction = 0.92;      // deceleration each frame
+  const springStiffness = 0.06;
+  const springDamping = 0.8;
+
+  // Pointers
+  const body = document.body;
+
+  body.addEventListener('pointerdown', (e) => {
+    isDragging = true;
+    lastPointerX = e.clientX;
+    lastTime = performance.now();
+    body.classList.add('dragging');
+    body.setPointerCapture(e.pointerId);
+  });
+
+  body.addEventListener('pointermove', (e) => {
+    if (!isDragging) return;
+    const currentX = e.clientX;
+    const currentTime = performance.now();
+    const deltaX = currentX - lastPointerX;
+    const deltaTime = Math.max(currentTime - lastTime, 1); // ms
+
+    // Update offset and instantaneous velocity (pixels per ms)
+    xOffset += deltaX;
+    velocity = deltaX / deltaTime;
+    lastPointerX = currentX;
+    lastTime = currentTime;
+
+    // Clamp to avoid infinite drag (soft limit later)
+  });
+
+  body.addEventListener('pointerup', () => {
+    isDragging = false;
+    body.classList.remove('dragging');
+  });
 </script>
 </body>
 </html>
