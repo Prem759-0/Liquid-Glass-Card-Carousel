@@ -234,6 +234,16 @@
       card.style.zIndex = Math.round(100 - distance);
     });
   }
+      const glare = document.getElementById('glare');
+  window.addEventListener('pointermove', (e) => {
+    const x = (e.clientX / window.innerWidth) * 100;
+    const y = (e.clientY / window.innerHeight) * 100;
+    glare.style.background = `radial-gradient(circle at ${x}% ${y}%, rgba(255,255,255,0.2) 0%, transparent 60%)`;
+    glare.style.opacity = '1';
+  });
+  window.addEventListener('pointerleave', () => {
+    glare.style.opacity = '0';
+  });
 </script>
 </body>
 </html>
