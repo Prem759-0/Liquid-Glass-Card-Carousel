@@ -178,6 +178,33 @@
     isDragging = false;
     body.classList.remove('dragging');
   });
+      function animateCarousel() {
+    if (!isDragging) {
+      // Apply friction
+      velocity *= friction;
+
+      // Snap target: nearest card (in terms of offset)
+      const snappedOffset = Math.round(xOffset / totalCardSpace) * totalCardSpace;
+      // Spring equation toward snappedOffset
+      const force = (snappedOffset - xOffset) * springStiffness;
+      velocity += force;
+      velocity *= springDamping;   // additional damping
+      xOffset += velocity;
+
+      // Stop tiny movements
+      if (Math.abs(velocity) < 0.01 && Math.abs(snappedOffset - xOffset) < 0.5) {
+        xOffset = snappedOffset;
+        velocity = 0;
+      }
+    }
+
+    // Update card transforms
+    updateCards();
+
+    requestAnimationFrame(animateCarousel);
+  }
+
+  animateCarousel();
 </script>
 </body>
 </html>
