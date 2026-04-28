@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Liquid Glass Carousel Pro</title>
+  <title>Infinite Holographic Carousel</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      background: #0a0a14;
+      background: #04040e;
       height: 100vh; width: 100vw;
       overflow: hidden;
       font-family: 'Segoe UI', system-ui, sans-serif;
@@ -16,8 +16,10 @@
       cursor: grab;
       user-select: none;
       touch-action: pan-y;
+      transition: background 0.6s;
     }
     body.dragging { cursor: grabbing; }
+    body.expanded { overflow: hidden; }
 
     canvas#particles {
       position: fixed; top: 0; left: 0;
@@ -27,41 +29,60 @@
 
     .carousel-wrapper {
       position: relative; z-index: 2;
-      perspective: 1200px;
+      perspective: 1300px;
       width: 90vw; max-width: 700px;
-      height: 400px;
+      height: 420px;
       display: flex;
       align-items: center; justify-content: center;
+      transform-style: preserve-3d;
+      transition: filter 0.3s;
+    }
+    body.expanded .carousel-wrapper {
+      filter: blur(8px) brightness(0.7);
+      pointer-events: none;
     }
 
     .carousel {
       position: absolute; left: 50%; top: 50%;
       transform-style: preserve-3d;
       will-change: transform;
-      transition: transform 0.1s ease-out; /* smooth tilt */
+      transition: transform 0.1s ease-out;
     }
 
     .card {
       position: absolute;
       width: 220px; height: 300px;
-      left: 50%; top: 50%;
       margin-left: -110px; margin-top: -150px;
       border-radius: 2rem;
       background: rgba(255,255,255,0.05);
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
       border: 1px solid rgba(255,255,255,0.15);
-      box-shadow: 0 30px 50px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.2);
+      box-shadow: 0 25px 45px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.2);
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
       color: white; font-size: 0.9rem;
       transform-style: preserve-3d;
       will-change: transform, filter, opacity;
-      transition: filter 0.2s, border-color 0.3s;
-      overflow: hidden;
+      transition: filter 0.2s, border-color 0.3s, box-shadow 0.3s;
+      overflow: visible;
+      -webkit-box-reflect: below 5px linear-gradient(transparent, rgba(255,255,255,0.08));
+      cursor: pointer;
+    }
+    /* Fallback for Firefox (no reflect) - we'll use opacity on a pseudo mirror? */
+    .card::after {
+      content: '';
+      position: absolute;
+      bottom: -10px; left: 0;
+      width: 100%; height: 50px;
+      background: linear-gradient(to bottom, rgba(255,255,255,0.1), transparent);
+      border-radius: 50%;
+      transform: scaleY(-1) translateY(-20px);
+      opacity: 0.2;
+      filter: blur(4px);
+      pointer-events: none;
     }
 
-    /* Pseudo‑element shine that moves with cursor */
     .card::before {
       content: '';
       position: absolute;
@@ -77,30 +98,51 @@
     .card.shine::before { opacity: 1; }
 
     .card h2 {
-      font-weight: 500; font-size: 2rem; margin: 0;
+      font-weight: 600; font-size: 2rem; margin: 0;
       background: linear-gradient(135deg, var(--g1, #c084fc), var(--g2, #60a5fa));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
-    .card p { opacity: 0.7; margin-top: 0.5rem; }
+    .card p { opacity: 0.8; margin-top: 0.5rem; }
 
-    /* Active card glow */
-    .card.active {
-      border-color: rgba(255,255,255,0.45);
-      box-shadow: 0 30px 55px rgba(120, 80, 255, 0.4), inset 0 1px 0 rgba(255,255,255,0.3);
+    .card .detail {
+      display: none;
+      margin-top: 0.8rem;
+      font-size: 0.8rem;
+      opacity: 0.9;
+      padding: 0 1rem;
+      text-align: center;
     }
 
-    /* Global glare overlay (still present for ambient light) */
+    .card.expanded {
+      position: fixed;
+      width: 90vw; max-width: 380px;
+      height: 500px;
+      left: 50%; top: 50%;
+      margin-left: unset; margin-top: unset;
+      transform: translate(-50%, -50%) !important;
+      z-index: 100;
+      transition: transform 0.4s cubic-bezier(0.2, 0.9, 0.3, 1), border-radius 0.4s;
+      border-radius: 3rem;
+      box-shadow: 0 0 100px rgba(120,80,255,0.5);
+      background: rgba(10,10,30,0.85);
+      backdrop-filter: blur(30px);
+      -webkit-backdrop-filter: blur(30px);
+      cursor: default;
+    }
+    .card.expanded::before { display: none; }
+    .card.expanded .detail { display: block; }
+    .card.expanded::after { display: none; }
+
     .glare {
       position: fixed; top: 0; left: 0;
       width: 100%; height: 100%;
       pointer-events: none; z-index: 10;
-      background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.1) 0%, transparent 60%);
+      background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.08) 0%, transparent 65%);
       mix-blend-mode: overlay; opacity: 0;
       transition: opacity 0.3s;
     }
 
-    /* Progress dots */
     .progress-dots {
       position: fixed;
       bottom: 2rem;
@@ -119,9 +161,20 @@
     }
     .dot.active {
       background: #a78bfa;
-      box-shadow: 0 0 12px #a78bfa;
-      transform: scale(1.4);
+      box-shadow: 0 0 14px #a78bfa;
+      transform: scale(1.5);
     }
+
+    .backdrop {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(5px);
+      z-index: 99;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    body.expanded .backdrop { opacity: 1; pointer-events: auto; }
   </style>
 </head>
 <body>
@@ -131,19 +184,22 @@
   </div>
   <div class="glare" id="glare"></div>
   <div class="progress-dots" id="dotsContainer"></div>
+  <div class="backdrop" id="backdrop"></div>
 
   <script>
-    // ────────────────────────────────── DOM ──────────────────────────────────
+    // ───────────────────────── DOM ─────────────────────────
     const carousel = document.getElementById('carousel');
     const glare = document.getElementById('glare');
     const dotsContainer = document.getElementById('dotsContainer');
+    const backdrop = document.getElementById('backdrop');
     const body = document.body;
 
-    // ────────────────────────────────── CARDS SETUP ──────────────────────────
+    // ───────────────────────── CARDS SETUP ─────────────────
     const cardCount = 8;
     const cardWidth = 220;
     const cardGap = 40;
     const totalCardSpace = cardWidth + cardGap;
+    const totalWidth = cardCount * totalCardSpace;
     const centerIndex = Math.floor(cardCount / 2);
 
     const colors = [
@@ -152,24 +208,40 @@
       ['#f87171','#fb7185'], ['#c084fc','#e879f9'],
       ['#60a5fa','#818cf8'], ['#34d399','#6ee7b7']
     ];
+    const categories = ['Design','Develop','Photography','Music','AI','Games','Space','Art'];
+    const details = [
+      'Creative UI/UX with pixel‑perfect details.',
+      'Clean code that scales beautifully.',
+      'Capturing moments with light.',
+      'Beats that move the soul.',
+      'Intelligence beyond imagination.',
+      'Immersive virtual worlds.',
+      'Exploring the final frontier.',
+      'Emotions on canvas.'
+    ];
 
     const cardElements = [];
+
+    // Virtual indices for infinite looping (can go beyond 0..cardCount-1)
+    const baseIndices = []; 
 
     for (let i = 0; i < cardCount; i++) {
       const card = document.createElement('div');
       card.className = 'card';
       card.innerHTML = `
         <span style="font-size:3rem">${['🎨','🚀','🌈','💎','🔮','🎵','✨','🪐'][i]}</span>
-        <h2>Card ${i+1}</h2>
+        <h2>${categories[i]}</h2>
         <p>Premium glass</p>
+        <div class="detail">${details[i]}</div>
       `;
       card.style.setProperty('--g1', colors[i][0]);
       card.style.setProperty('--g2', colors[i][1]);
       carousel.appendChild(card);
       cardElements.push(card);
+      baseIndices.push(i); // initial mapping: card i -> virtual index i
     }
 
-    // ────────────────────────────────── PROGRESS DOTS ────────────────────────
+    // ───────────────────────── PROGRESS DOTS ───────────────
     const dots = [];
     for (let i = 0; i < cardCount; i++) {
       const dot = document.createElement('div');
@@ -178,31 +250,32 @@
       dots.push(dot);
     }
 
-    // ────────────────────────────────── STATE ───────────────────────────────
-    let xOffset = 0;               // current visual offset
-    let targetOffset = 0;          // destination (snap / auto‑advance)
+    // ───────────────────────── STATE ──────────────────────
+    let virtualOffset = 0;        // current visual offset (can go arbitrary)
+    let targetOffset = 0;         // desired offset (snap target)
     let velocity = 0;
     let isDragging = false;
-    let lastPointerX = 0;
-    let lastTime = 0;
+    let lastPointerX = 0, lastTime = 0;
     const friction = 0.92;
     const springStiffness = 0.08;
     const springDamping = 0.78;
+    let idleTime = 0;
+    const autoAdvanceDelay = 4000;
+    let autoPlayDirection = 1;    // 1 or -1
 
-    let idleTime = 0;              // ms since last interaction
-    const autoAdvanceDelay = 3500; // ms before auto‑next
-    let autoPlayDirection = 1;     // 1 = forward, -1 = backward
+    let mouseScreenX = window.innerWidth/2;
+    let mouseScreenY = window.innerHeight/2;
+    let expandedCardIndex = -1;    // index of expanded card (if any)
 
-    // Mouse position for tilt & per‑card shine
-    let mouseScreenX = window.innerWidth / 2;
-    let mouseScreenY = window.innerHeight / 2;
-
-    // ────────────────────────────────── INTERACTION ──────────────────────────
-    function resetIdle() {
-      idleTime = 0;
-    }
+    // ─────────────────────── INTERACTION ───────────────────
+    function resetIdle() { idleTime = 0; }
 
     body.addEventListener('pointerdown', (e) => {
+      // if expanded, close it on click outside
+      if (expandedCardIndex !== -1) {
+        collapseCard();
+        return;
+      }
       isDragging = true;
       lastPointerX = e.clientX;
       lastTime = performance.now();
@@ -219,8 +292,8 @@
       const currentTime = performance.now();
       const deltaX = currentX - lastPointerX;
       const deltaTime = Math.max(currentTime - lastTime, 1);
-      xOffset += deltaX;
-      targetOffset = xOffset;           // while dragging, follow freely
+      virtualOffset += deltaX;
+      targetOffset = virtualOffset;
       velocity = deltaX / deltaTime;
       lastPointerX = currentX;
       lastTime = currentTime;
@@ -231,42 +304,63 @@
       if (!isDragging) return;
       isDragging = false;
       body.classList.remove('dragging');
-      // Snap to nearest card
-      const nearest = Math.round(xOffset / totalCardSpace) * totalCardSpace;
-      targetOffset = nearest;
+      // Snap to nearest card center (virtual index)
+      const nearestOffset = Math.round(virtualOffset / totalCardSpace) * totalCardSpace;
+      targetOffset = nearestOffset;
       resetIdle();
     });
 
-    // Mouse wheel / trackpad
+    // Double‑tap / double‑click to expand
+    body.addEventListener('dblclick', (e) => {
+      if (isDragging || expandedCardIndex !== -1) return;
+      // find closest card to pointer
+      const target = e.target.closest('.card');
+      if (!target) return;
+      const idx = cardElements.indexOf(target);
+      if (idx !== -1) expandCard(idx);
+    });
+
+    // Wheel support
     window.addEventListener('wheel', (e) => {
       e.preventDefault();
-      const scrollSensitivity = 0.8;
-      targetOffset -= e.deltaY * scrollSensitivity;
-      // Clamp soft limit (prevent infinite scroll, we'll wrap later if desired)
+      if (expandedCardIndex !== -1) return;
+      targetOffset -= e.deltaY * 0.8;
       resetIdle();
     }, { passive: false });
 
-    // ────────────────────────────────── CARD UPDATE ──────────────────────────
+    // ─────────────────────── INFINITE WRAPPING ──────────────
     function updateCards() {
-      // Calculate active card index from targetOffset (for progress dots)
-      const rawIndex = Math.round(targetOffset / totalCardSpace);
-      const activeIndex = ((rawIndex % cardCount) + cardCount) % cardCount; // allow wrapping
+      // Calculate which virtual index is closest to center (active)
+      const activeVirtualIndex = Math.round(targetOffset / totalCardSpace);
 
-      cardElements.forEach((card, index) => {
-        const baseX = (index - centerIndex) * totalCardSpace + xOffset;
-        const distance = Math.abs(baseX);
-        const maxDistance = totalCardSpace * 2.2;
-        const scale = Math.max(0.6, 1 - (distance / maxDistance) * 0.5);
-        const zTranslate = -distance * 0.6;
-        const rotateY = (baseX / (totalCardSpace * 2)) * 20;
+      cardElements.forEach((card, i) => {
+        // Determine current virtual index for this card element
+        let virtIdx = baseIndices[i];
+        // Compute raw visual offset using virtual index
+        let rawX = (virtIdx - centerIndex) * totalCardSpace + virtualOffset;
+        
+        // Wrapping logic: if card is too far left/right, adjust its virtual index
+        if (rawX < -totalWidth * 0.8) {
+          baseIndices[i] += cardCount;
+          virtIdx = baseIndices[i];
+          rawX = (virtIdx - centerIndex) * totalCardSpace + virtualOffset;
+        } else if (rawX > totalWidth * 0.8) {
+          baseIndices[i] -= cardCount;
+          virtIdx = baseIndices[i];
+          rawX = (virtIdx - centerIndex) * totalCardSpace + virtualOffset;
+        }
+        
+        const distance = Math.abs(rawX);
+        const maxDistance = totalCardSpace * 2.5;
+        const scale = Math.max(0.55, 1 - (distance / maxDistance) * 0.5);
+        const zTranslate = -distance * 0.7;
+        const rotateY = (rawX / (totalCardSpace * 2)) * 18;
         const opacity = Math.max(0.25, 1 - distance / (maxDistance * 1.1));
+        const blurAmount = Math.min(distance / 140, 3);
 
-        // Depth blur (soft)
-        const blurAmount = Math.min(distance / 150, 3);
         card.style.filter = `blur(${blurAmount}px)`;
-
         card.style.transform = `
-          translateX(${baseX}px)
+          translateX(${rawX}px)
           translateZ(${zTranslate}px)
           rotateY(${rotateY}deg)
           scale(${scale})
@@ -274,100 +368,110 @@
         card.style.opacity = opacity;
         card.style.zIndex = Math.round(100 - distance);
 
-        // Highlight active card
-        if (index === activeIndex) {
-          card.classList.add('active');
-        } else {
-          card.classList.remove('active');
-        }
+        // Highlight active card (nearest to center)
+        const isActive = (virtIdx === activeVirtualIndex);
+        card.classList.toggle('active', isActive);
 
-        // Per‑card shine: compute cursor position relative to card center (screen space)
-        const cardRect = card.getBoundingClientRect();
-        const cardCenterX = cardRect.left + cardRect.width / 2;
-        const cardCenterY = cardRect.top + cardRect.height / 2;
-        const relX = ((mouseScreenX - cardCenterX) / cardRect.width) * 100 + 50;  // 0-100%
-        const relY = ((mouseScreenY - cardCenterY) / cardRect.height) * 100 + 50;
+        // Per‑card shine
+        const rect = card.getBoundingClientRect();
+        const cx = rect.left + rect.width/2;
+        const cy = rect.top + rect.height/2;
+        const relX = ((mouseScreenX - cx)/rect.width)*100 + 50;
+        const relY = ((mouseScreenY - cy)/rect.height)*100 + 50;
         card.style.setProperty('--shine-x', `${relX}%`);
         card.style.setProperty('--shine-y', `${relY}%`);
-
-        // Add shine class only to cards that are reasonably close to the cursor
-        const distToCursor = Math.hypot(mouseScreenX - cardCenterX, mouseScreenY - cardCenterY);
-        if (distToCursor < 200 && distance < totalCardSpace * 1.5) {
-          card.classList.add('shine');
-        } else {
-          card.classList.remove('shine');
-        }
+        const distCursor = Math.hypot(mouseScreenX-cx, mouseScreenY-cy);
+        card.classList.toggle('shine', distCursor < 200 && distance < totalCardSpace*1.5);
       });
 
-      // Update progress dots
-      dots.forEach((dot, i) => {
-        dot.classList.toggle('active', i === activeIndex);
-      });
+      // Update progress dots (modulo cardCount)
+      const activeMod = ((activeVirtualIndex % cardCount) + cardCount) % cardCount;
+      dots.forEach((dot, i) => dot.classList.toggle('active', i === activeMod));
+
+      // Dynamic background tint based on active card
+      const activeColor = colors[activeMod][0];
+      body.style.background = `radial-gradient(ellipse at center, ${activeColor}20, #04040e 70%)`;
     }
 
-    // ────────────────────────────────── CAROUSEL TILT (3D) ───────────────────
+    // ─────────────────────── EXPAND / COLLAPSE ──────────────
+    function expandCard(index) {
+      if (expandedCardIndex !== -1) return;
+      expandedCardIndex = index;
+      cardElements[index].classList.add('expanded');
+      body.classList.add('expanded');
+      // Show backdrop
+      backdrop.style.opacity = '1';
+      body.style.cursor = 'default';
+      // Stop auto‑play while expanded
+      resetIdle();
+    }
+
+    function collapseCard() {
+      if (expandedCardIndex === -1) return;
+      cardElements[expandedCardIndex].classList.remove('expanded');
+      body.classList.remove('expanded');
+      backdrop.style.opacity = '0';
+      expandedCardIndex = -1;
+      body.style.cursor = 'grab';
+    }
+
+    backdrop.addEventListener('click', collapseCard);
+    // Close with Escape key
+    window.addEventListener('keydown', (e) => { if (e.key === 'Escape') collapseCard(); });
+
+    // ─────────────────────── CAROUSEL TILT ──────────────────
     function updateCarouselTilt() {
-      const tiltX = ((mouseScreenY / window.innerHeight) - 0.5) * -12; // vertical tilt
-      const tiltY = ((mouseScreenX / window.innerWidth) - 0.5) * 18;   // horizontal tilt
+      const tiltX = ((mouseScreenY / window.innerHeight) - 0.5) * -10;
+      const tiltY = ((mouseScreenX / window.innerWidth) - 0.5) * 16;
       carousel.style.transform = `translate(-50%, -50%) rotateX(${tiltX}deg) rotateY(${tiltY}deg)`;
     }
 
-    // ────────────────────────────────── GLOBAL GLARE ─────────────────────────
-    function updateGlobalGlare() {
+    // ─────────────────────── GLOBAL GLARE ───────────────────
+    function updateGlare() {
       const x = (mouseScreenX / window.innerWidth) * 100;
       const y = (mouseScreenY / window.innerHeight) * 100;
-      glare.style.background = `radial-gradient(circle at ${x}% ${y}%, rgba(255,255,255,0.15) 0%, transparent 65%)`;
+      glare.style.background = `radial-gradient(circle at ${x}% ${y}%, rgba(255,255,255,0.12) 0%, transparent 65%)`;
     }
 
-    // ────────────────────────────────── ANIMATION LOOP ───────────────────────
-    function animate(time) {
-      // Track idle for auto‑play
-      if (!isDragging) {
-        idleTime += 16; // approx per frame
+    // ─────────────────────── AUTO‑PLAY ──────────────────────
+    function updateAutoPlay(dt) {
+      if (isDragging || expandedCardIndex !== -1) return;
+      idleTime += dt;
+      if (idleTime > autoAdvanceDelay) {
+        const currentSnap = Math.round(targetOffset / totalCardSpace) * totalCardSpace;
+        targetOffset = currentSnap + autoPlayDirection * totalCardSpace;
+        idleTime = 0;
       }
+    }
 
-      // Auto‑advance when idle long enough
-      if (!isDragging && idleTime > autoAdvanceDelay) {
-        // Determine target next card without skipping abruptly
-        const currentSnapped = Math.round(targetOffset / totalCardSpace) * totalCardSpace;
-        const nextOffset = currentSnapped + autoPlayDirection * totalCardSpace;
-        // Wrap if needed (optional infinite scroll)
-        targetOffset = nextOffset;
-        idleTime = 0; // reset timer so it doesn't snap immediately again
-        // Reverse direction at edges for a boomerang effect
-        const maxOffset = (cardCount - 1 - centerIndex) * totalCardSpace;
-        const minOffset = -(centerIndex) * totalCardSpace;
-        if (targetOffset > maxOffset) {
-          targetOffset = minOffset;
-        } else if (targetOffset < minOffset) {
-          targetOffset = maxOffset;
-        }
-      }
+    // ─────────────────────── ANIMATION LOOP ─────────────────
+    let lastFrameTime = performance.now();
+    function animate(now) {
+      const dt = now - lastFrameTime;
+      lastFrameTime = now;
+      
+      updateAutoPlay(dt);
 
-      // Physics: when not dragging, smoothly interpolate xOffset toward targetOffset
       if (!isDragging) {
-        const diff = targetOffset - xOffset;
+        const diff = targetOffset - virtualOffset;
         if (Math.abs(diff) > 0.1) {
-          // Use spring‑like but with critical damping for smoothness
           velocity += diff * springStiffness;
           velocity *= springDamping;
-          xOffset += velocity;
+          virtualOffset += velocity;
         } else {
-          xOffset = targetOffset;
+          virtualOffset = targetOffset;
           velocity = 0;
         }
-      } else {
-        // while dragging, targetOffset = xOffset (already set in move)
       }
 
       updateCards();
       updateCarouselTilt();
-      updateGlobalGlare();
+      updateGlare();
 
       requestAnimationFrame(animate);
     }
 
-    // ────────────────────────────────── PARTICLES (CONSTELLATION) ────────────
+    // ─────────────────────── PARTICLES ───────────────────────
     const canvas = document.getElementById('particles');
     const ctx = canvas.getContext('2d');
     let width, height;
@@ -378,29 +482,43 @@
       height = window.innerHeight;
       canvas.width = width;
       canvas.height = height;
-      initParticles();
+      if (particles.length === 0) initParticles();
     }
     window.addEventListener('resize', resizeCanvas);
 
     function initParticles() {
       particles = [];
-      const count = 120;
-      for (let i = 0; i < count; i++) {
+      for (let i = 0; i < 130; i++) {
         particles.push({
           x: Math.random() * width,
           y: Math.random() * height,
-          vx: (Math.random() - 0.5) * 0.35,
-          vy: (Math.random() - 0.5) * 0.35,
+          vx: (Math.random() - 0.5) * 0.3,
+          vy: (Math.random() - 0.5) * 0.3,
           radius: Math.random() * 2 + 1,
-          color: `hsl(${260 + Math.random() * 40}, 80%, 70%)`,
+          color: `hsl(${260 + Math.random()*40}, 80%, 70%)`,
         });
       }
     }
 
     function drawParticles() {
       ctx.clearRect(0, 0, width, height);
-      // Update positions
+      // update & maybe attract to active card
+      let activeScreenX = width/2, activeScreenY = height/2;
+      if (expandedCardIndex !== -1) {
+        const rect = cardElements[expandedCardIndex].getBoundingClientRect();
+        activeScreenX = rect.left + rect.width/2;
+        activeScreenY = rect.top + rect.height/2;
+      }
       for (let p of particles) {
+        // gentle attraction towards active card
+        const dx = activeScreenX - p.x;
+        const dy = activeScreenY - p.y;
+        const dist = Math.sqrt(dx*dx+dy*dy) || 1;
+        const force = 0.0002;
+        p.vx += (dx / dist) * force;
+        p.vy += (dy / dist) * force;
+        p.vx *= 0.999;
+        p.vy *= 0.999;
         p.x += p.vx;
         p.y += p.vy;
         if (p.x < 0) p.x = width;
@@ -409,16 +527,16 @@
         if (p.y > height) p.y = 0;
       }
 
-      // Draw connections (constellation)
-      const threshold = 100;
+      // Draw constellations
+      const threshold = 110;
       ctx.beginPath();
-      ctx.strokeStyle = 'rgba(167, 139, 250, 0.12)';
-      ctx.lineWidth = 0.5;
+      ctx.strokeStyle = 'rgba(167,139,250,0.08)';
+      ctx.lineWidth = 0.6;
       for (let i = 0; i < particles.length; i++) {
-        for (let j = i + 1; j < particles.length; j++) {
+        for (let j = i+1; j < particles.length; j++) {
           const dx = particles[i].x - particles[j].x;
           const dy = particles[i].y - particles[j].y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
+          const dist = Math.sqrt(dx*dx+dy*dy);
           if (dist < threshold) {
             ctx.moveTo(particles[i].x, particles[i].y);
             ctx.lineTo(particles[j].x, particles[j].y);
@@ -430,28 +548,25 @@
       // Draw particles
       for (let p of particles) {
         ctx.beginPath();
-        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI*2);
         ctx.fillStyle = p.color;
         ctx.shadowColor = p.color;
-        ctx.shadowBlur = 12;
+        ctx.shadowBlur = 10;
         ctx.fill();
       }
       ctx.shadowBlur = 0;
       requestAnimationFrame(drawParticles);
     }
 
-    // ────────────────────────────────── START ────────────────────────────────
+    // ─────────────────────── START ──────────────────────────
     resizeCanvas();
+    initParticles();
     drawParticles();
     requestAnimationFrame(animate);
 
-    // Show glare on move
-    window.addEventListener('pointermove', () => {
-      glare.style.opacity = '1';
-    });
-    window.addEventListener('pointerleave', () => {
-      glare.style.opacity = '0';
-    });
+    // Global glare visibility
+    window.addEventListener('pointermove', () => { glare.style.opacity = '1'; });
+    window.addEventListener('pointerleave', () => { glare.style.opacity = '0'; });
   </script>
 </body>
 </html>
