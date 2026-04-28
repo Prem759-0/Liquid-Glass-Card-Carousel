@@ -205,6 +205,35 @@
   }
 
   animateCarousel();
+      function updateCards() {
+    const cards = document.querySelectorAll('.card');
+    cards.forEach((card, index) => {
+      // Calculate the card's intended position (center of carousel offset)
+      const baseX = (index - centerIndex) * totalCardSpace + xOffset;
+      // Distance from 0 (center)
+      const distance = Math.abs(baseX);
+      const maxDistance = totalCardSpace * 2;
+
+      // Scale down cards far from center
+      const scale = Math.max(0.6, 1 - (distance / maxDistance) * 0.5);
+      // Z translation to create depth
+      const zTranslate = -distance * 0.6;
+      // Y rotation (cards slightly face center)
+      const rotateY = (baseX / (totalCardSpace * 2)) * 20; // deg
+
+      // Opacity fade
+      const opacity = Math.max(0.3, 1 - distance / (maxDistance * 1.2));
+
+      card.style.transform = `
+        translateX(${baseX}px)
+        translateZ(${zTranslate}px)
+        rotateY(${rotateY}deg)
+        scale(${scale})
+      `;
+      card.style.opacity = opacity;
+      card.style.zIndex = Math.round(100 - distance);
+    });
+  }
 </script>
 </body>
 </html>
