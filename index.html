@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Infinite Holographic Carousel</title>
+  <title>Cinematic Glass Carousel</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * { margin:0; padding:0; box-sizing:border-box; }
     body {
-      background: #04040e;
+      background: #050510;
       height: 100vh; width: 100vw;
       overflow: hidden;
       font-family: 'Segoe UI', system-ui, sans-serif;
@@ -16,37 +16,36 @@
       cursor: grab;
       user-select: none;
       touch-action: pan-y;
-      transition: background 0.6s;
+      transition: background 0.8s ease;
     }
     body.dragging { cursor: grabbing; }
     body.expanded { overflow: hidden; }
 
     canvas#particles {
-      position: fixed; top: 0; left: 0;
-      width: 100%; height: 100%;
-      z-index: 0; pointer-events: none;
+      position: fixed; top:0; left:0;
+      width:100%; height:100%;
+      z-index:0; pointer-events: none;
     }
 
     .carousel-wrapper {
-      position: relative; z-index: 2;
+      position: relative; z-index:2;
       perspective: 1300px;
       width: 90vw; max-width: 700px;
       height: 420px;
       display: flex;
       align-items: center; justify-content: center;
-      transform-style: preserve-3d;
       transition: filter 0.3s;
     }
     body.expanded .carousel-wrapper {
-      filter: blur(8px) brightness(0.7);
+      filter: blur(10px) brightness(0.6);
       pointer-events: none;
     }
 
     .carousel {
-      position: absolute; left: 50%; top: 50%;
+      position: absolute; left:50%; top:50%;
       transform-style: preserve-3d;
       will-change: transform;
-      transition: transform 0.1s ease-out;
+      transition: transform 0.08s ease-out;
     }
 
     .card {
@@ -54,35 +53,37 @@
       width: 220px; height: 300px;
       margin-left: -110px; margin-top: -150px;
       border-radius: 2rem;
-      background: rgba(255,255,255,0.05);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.06);
+      backdrop-filter: blur(22px);
+      -webkit-backdrop-filter: blur(22px);
+      border: 1px solid rgba(255,255,255,0.2);
       box-shadow: 0 25px 45px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.2);
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
       color: white; font-size: 0.9rem;
       transform-style: preserve-3d;
-      will-change: transform, filter, opacity;
-      transition: filter 0.2s, border-color 0.3s, box-shadow 0.3s;
-      overflow: visible;
-      -webkit-box-reflect: below 5px linear-gradient(transparent, rgba(255,255,255,0.08));
+      will-change: transform, filter, opacity, border-color;
+      transition: filter 0.2s, border-color 0.3s, box-shadow 0.3s, transform 0.1s ease;
       cursor: pointer;
+      overflow: hidden;
     }
-    /* Fallback for Firefox (no reflect) - we'll use opacity on a pseudo mirror? */
+    /* Reflection floor */
     .card::after {
       content: '';
       position: absolute;
-      bottom: -10px; left: 0;
-      width: 100%; height: 50px;
-      background: linear-gradient(to bottom, rgba(255,255,255,0.1), transparent);
-      border-radius: 50%;
-      transform: scaleY(-1) translateY(-20px);
-      opacity: 0.2;
-      filter: blur(4px);
+      bottom: -45px; left:0;
+      width:100%; height:60px;
+      background: linear-gradient(to bottom, rgba(255,255,255,0.15), transparent);
+      transform: scaleY(-1) translateY(-10px);
+      opacity: 0.3;
+      filter: blur(6px);
       pointer-events: none;
+      border-radius: 50%;
+      transition: opacity 0.3s;
     }
+    .card:hover::after { opacity: 0.5; }
 
+    /* Shine overlay */
     .card::before {
       content: '';
       position: absolute;
@@ -98,66 +99,67 @@
     .card.shine::before { opacity: 1; }
 
     .card h2 {
-      font-weight: 600; font-size: 2rem; margin: 0;
-      background: linear-gradient(135deg, var(--g1, #c084fc), var(--g2, #60a5fa));
+      font-weight: 600; font-size: 2rem; margin:0;
+      background: linear-gradient(135deg, var(--g1), var(--g2));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
-    .card p { opacity: 0.8; margin-top: 0.5rem; }
+    .card p { opacity:0.8; margin-top:0.5rem; }
+    .card .icon { font-size: 3rem; transition: transform 0.2s ease; }
+    .card .detail { display: none; margin-top:0.8rem; font-size:0.8rem; opacity:0.9; padding:0 1rem; text-align:center; }
 
-    .card .detail {
-      display: none;
-      margin-top: 0.8rem;
-      font-size: 0.8rem;
-      opacity: 0.9;
-      padding: 0 1rem;
-      text-align: center;
+    /* Hover lift effect */
+    .card.hover-lift {
+      transform: translateX(var(--tx)) translateZ(-30px) rotateY(var(--ry)) scale(calc(var(--s) * 1.08)) !important;
+      box-shadow: 0 35px 60px rgba(120,80,255,0.4), inset 0 1px 0 rgba(255,255,255,0.3);
+      border-color: rgba(255,255,255,0.5);
+    }
+    .card.hover-lift::after { opacity: 0.7; }
+
+    .card.active {
+      border-color: rgba(255,255,255,0.45);
+      box-shadow: 0 30px 55px rgba(120,80,255,0.5), inset 0 1px 0 rgba(255,255,255,0.3);
     }
 
+    /* Expanded card */
     .card.expanded {
       position: fixed;
       width: 90vw; max-width: 380px;
       height: 500px;
-      left: 50%; top: 50%;
-      margin-left: unset; margin-top: unset;
+      left:50%; top:50%;
+      margin:0;
       transform: translate(-50%, -50%) !important;
       z-index: 100;
-      transition: transform 0.4s cubic-bezier(0.2, 0.9, 0.3, 1), border-radius 0.4s;
+      transition: transform 0.45s cubic-bezier(0.2,0.9,0.3,1), border-radius 0.4s;
       border-radius: 3rem;
-      box-shadow: 0 0 100px rgba(120,80,255,0.5);
-      background: rgba(10,10,30,0.85);
+      box-shadow: 0 0 100px rgba(120,80,255,0.6);
+      background: rgba(10,10,30,0.9);
       backdrop-filter: blur(30px);
       -webkit-backdrop-filter: blur(30px);
       cursor: default;
     }
     .card.expanded::before { display: none; }
-    .card.expanded .detail { display: block; }
     .card.expanded::after { display: none; }
+    .card.expanded .detail { display: block; }
 
     .glare {
-      position: fixed; top: 0; left: 0;
-      width: 100%; height: 100%;
-      pointer-events: none; z-index: 10;
+      position: fixed; top:0; left:0;
+      width:100%; height:100%;
+      pointer-events: none; z-index:10;
       background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.08) 0%, transparent 65%);
-      mix-blend-mode: overlay; opacity: 0;
+      mix-blend-mode: overlay; opacity:0;
       transition: opacity 0.3s;
     }
 
     .progress-dots {
-      position: fixed;
-      bottom: 2rem;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      gap: 0.75rem;
-      z-index: 5;
+      position: fixed; bottom:2rem; left:50%; transform:translateX(-50%);
+      display: flex; gap:0.75rem; z-index:5;
       pointer-events: none;
     }
     .dot {
-      width: 8px; height: 8px;
-      border-radius: 50%;
+      width:8px; height:8px; border-radius:50%;
       background: rgba(255,255,255,0.25);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
     }
     .dot.active {
       background: #a78bfa;
@@ -166,15 +168,25 @@
     }
 
     .backdrop {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.6);
-      backdrop-filter: blur(5px);
-      z-index: 99;
-      opacity: 0;
-      pointer-events: none;
+      position: fixed; top:0; left:0; width:100%; height:100%;
+      background: rgba(0,0,0,0.65);
+      backdrop-filter: blur(8px);
+      z-index:99; opacity:0; pointer-events:none;
       transition: opacity 0.3s;
     }
-    body.expanded .backdrop { opacity: 1; pointer-events: auto; }
+    body.expanded .backdrop { opacity:1; pointer-events:auto; }
+
+    .sound-toggle {
+      position: fixed; bottom:2rem; right:2rem;
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(10px);
+      border:1px solid rgba(255,255,255,0.2);
+      color:white; width:44px; height:44px;
+      border-radius:50%; display:flex; align-items:center; justify-content:center;
+      cursor:pointer; z-index:200; font-size:1.2rem;
+      transition: background 0.2s;
+    }
+    .sound-toggle.muted { opacity:0.6; }
   </style>
 </head>
 <body>
@@ -185,51 +197,49 @@
   <div class="glare" id="glare"></div>
   <div class="progress-dots" id="dotsContainer"></div>
   <div class="backdrop" id="backdrop"></div>
+  <button class="sound-toggle" id="soundToggle" title="Toggle sound">🔊</button>
 
   <script>
-    // ───────────────────────── DOM ─────────────────────────
+    // ────────────────── DOM ELEMENTS ──────────────────
     const carousel = document.getElementById('carousel');
     const glare = document.getElementById('glare');
     const dotsContainer = document.getElementById('dotsContainer');
     const backdrop = document.getElementById('backdrop');
+    const soundToggle = document.getElementById('soundToggle');
     const body = document.body;
 
-    // ───────────────────────── CARDS SETUP ─────────────────
+    // ────────────────── CARDS DATA ──────────────────
     const cardCount = 8;
-    const cardWidth = 220;
-    const cardGap = 40;
+    const cardWidth = 220, cardGap = 40;
     const totalCardSpace = cardWidth + cardGap;
-    const totalWidth = cardCount * totalCardSpace;
-    const centerIndex = Math.floor(cardCount / 2);
-
+    const centerIndex = Math.floor(cardCount/2);
     const colors = [
-      ['#a78bfa','#f472b6'], ['#38bdf8','#2dd4bf'],
-      ['#fb923c','#fbbf24'], ['#4ade80','#a3e635'],
-      ['#f87171','#fb7185'], ['#c084fc','#e879f9'],
-      ['#60a5fa','#818cf8'], ['#34d399','#6ee7b7']
+      ['#a78bfa','#f472b6'],['#38bdf8','#2dd4bf'],
+      ['#fb923c','#fbbf24'],['#4ade80','#a3e635'],
+      ['#f87171','#fb7185'],['#c084fc','#e879f9'],
+      ['#60a5fa','#818cf8'],['#34d399','#6ee7b7']
     ];
-    const categories = ['Design','Develop','Photography','Music','AI','Games','Space','Art'];
+    const categories = ['Design','Develop','Photo','Music','AI','Games','Space','Art'];
     const details = [
-      'Creative UI/UX with pixel‑perfect details.',
-      'Clean code that scales beautifully.',
-      'Capturing moments with light.',
-      'Beats that move the soul.',
-      'Intelligence beyond imagination.',
-      'Immersive virtual worlds.',
-      'Exploring the final frontier.',
+      'Pixel‑perfect UI/UX with motion.',
+      'Clean code that scales.',
+      'Light captured in pixels.',
+      'Rhythm that moves worlds.',
+      'Intelligence reimagined.',
+      'Immersive virtual realms.',
+      'The final frontier awaits.',
       'Emotions on canvas.'
     ];
+    const icons = ['🎨','🚀','📷','🎵','🤖','🎮','🌌','🎭'];
 
     const cardElements = [];
+    let baseIndices = []; // virtual index per card element
 
-    // Virtual indices for infinite looping (can go beyond 0..cardCount-1)
-    const baseIndices = []; 
-
-    for (let i = 0; i < cardCount; i++) {
+    for (let i=0; i<cardCount; i++) {
       const card = document.createElement('div');
       card.className = 'card';
       card.innerHTML = `
-        <span style="font-size:3rem">${['🎨','🚀','🌈','💎','🔮','🎵','✨','🪐'][i]}</span>
+        <span class="icon">${icons[i]}</span>
         <h2>${categories[i]}</h2>
         <p>Premium glass</p>
         <div class="detail">${details[i]}</div>
@@ -238,225 +248,255 @@
       card.style.setProperty('--g2', colors[i][1]);
       carousel.appendChild(card);
       cardElements.push(card);
-      baseIndices.push(i); // initial mapping: card i -> virtual index i
+      baseIndices.push(i);
     }
 
-    // ───────────────────────── PROGRESS DOTS ───────────────
+    // ────────────────── PROGRESS DOTS ──────────────────
     const dots = [];
-    for (let i = 0; i < cardCount; i++) {
+    for (let i=0; i<cardCount; i++) {
       const dot = document.createElement('div');
       dot.className = 'dot';
       dotsContainer.appendChild(dot);
       dots.push(dot);
     }
 
-    // ───────────────────────── STATE ──────────────────────
-    let virtualOffset = 0;        // current visual offset (can go arbitrary)
-    let targetOffset = 0;         // desired offset (snap target)
-    let velocity = 0;
-    let isDragging = false;
-    let lastPointerX = 0, lastTime = 0;
-    const friction = 0.92;
-    const springStiffness = 0.08;
-    const springDamping = 0.78;
-    let idleTime = 0;
-    const autoAdvanceDelay = 4000;
-    let autoPlayDirection = 1;    // 1 or -1
+    // ────────────────── AUDIO ENGINE ──────────────────
+    let audioCtx = null;
+    let soundEnabled = true;
+    function initAudio() {
+      if (audioCtx) return;
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    function playClick() {
+      if (!audioCtx || !soundEnabled) return;
+      const t = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(800, t);
+      osc.frequency.exponentialRampToValueAtTime(200, t+0.08);
+      gain.gain.setValueAtTime(0.15, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t+0.08);
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start(t); osc.stop(t+0.08);
+    }
+    function playSwipe(intensity=0.5) {
+      if (!audioCtx || !soundEnabled) return;
+      const t = audioCtx.currentTime;
+      const noise = audioCtx.createBufferSource();
+      const buf = audioCtx.createBuffer(1, audioCtx.sampleRate*0.15, audioCtx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i=0; i<data.length; i++) data[i] = (Math.random()*2-1) * Math.exp(-i/(audioCtx.sampleRate*0.02));
+      noise.buffer = buf;
+      const gain = audioCtx.createGain();
+      gain.gain.setValueAtTime(intensity*0.15, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t+0.15);
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = 'lowpass'; filter.frequency.value = 2000;
+      noise.connect(filter).connect(gain).connect(audioCtx.destination);
+      noise.start(t); noise.stop(t+0.15);
+    }
 
-    let mouseScreenX = window.innerWidth/2;
-    let mouseScreenY = window.innerHeight/2;
-    let expandedCardIndex = -1;    // index of expanded card (if any)
+    soundToggle.addEventListener('click', () => {
+      initAudio();
+      soundEnabled = !soundEnabled;
+      soundToggle.textContent = soundEnabled ? '🔊' : '🔇';
+      soundToggle.classList.toggle('muted', !soundEnabled);
+    });
+    // Unlock audio on first user gesture
+    window.addEventListener('pointerdown', initAudio, {once:true});
+    window.addEventListener('keydown', initAudio, {once:true});
 
-    // ─────────────────────── INTERACTION ───────────────────
+    // ────────────────── STATE ──────────────────
+    let virtualOffset = 0, targetOffset = 0, velocity = 0;
+    let isDragging = false, lastPointerX=0, lastTime=0;
+    const friction = 0.92, stiffness = 0.08, damping = 0.78;
+    let idleTime = 0, autoAdvanceDelay = 4000;
+    let autoPlayDir = 1;
+    let mouseX = innerWidth/2, mouseY = innerHeight/2;
+    let expandedCardIdx = -1;
+    let hoverCardIdx = -1; // track hovered card index (or -1)
+    let lastSnappedVirtual = 0; // to detect snap change
+
+    // ────────────────── POINTER & KEYBOARD ──────────────────
     function resetIdle() { idleTime = 0; }
 
     body.addEventListener('pointerdown', (e) => {
-      // if expanded, close it on click outside
-      if (expandedCardIndex !== -1) {
-        collapseCard();
-        return;
-      }
-      isDragging = true;
-      lastPointerX = e.clientX;
-      lastTime = performance.now();
-      body.classList.add('dragging');
-      body.setPointerCapture(e.pointerId);
+      if (expandedCardIdx !== -1) { collapseCard(); return; }
+      isDragging = true; lastPointerX = e.clientX; lastTime = performance.now();
+      body.classList.add('dragging'); body.setPointerCapture(e.pointerId);
       resetIdle();
     });
-
     body.addEventListener('pointermove', (e) => {
-      mouseScreenX = e.clientX;
-      mouseScreenY = e.clientY;
+      mouseX = e.clientX; mouseY = e.clientY;
       if (!isDragging) return;
-      const currentX = e.clientX;
-      const currentTime = performance.now();
-      const deltaX = currentX - lastPointerX;
-      const deltaTime = Math.max(currentTime - lastTime, 1);
-      virtualOffset += deltaX;
-      targetOffset = virtualOffset;
-      velocity = deltaX / deltaTime;
-      lastPointerX = currentX;
-      lastTime = currentTime;
+      const dx = e.clientX - lastPointerX, dt = Math.max(performance.now()-lastTime,1);
+      virtualOffset += dx; targetOffset = virtualOffset;
+      velocity = dx / dt;
+      lastPointerX = e.clientX; lastTime = performance.now();
       resetIdle();
+      if (Math.abs(dx) > 2) playSwipe(Math.min(Math.abs(dx)/30, 1));
     });
-
     body.addEventListener('pointerup', () => {
       if (!isDragging) return;
-      isDragging = false;
-      body.classList.remove('dragging');
-      // Snap to nearest card center (virtual index)
-      const nearestOffset = Math.round(virtualOffset / totalCardSpace) * totalCardSpace;
-      targetOffset = nearestOffset;
+      isDragging = false; body.classList.remove('dragging');
+      const nearest = Math.round(virtualOffset / totalCardSpace) * totalCardSpace;
+      targetOffset = nearest;
+      if (Math.abs(nearest - virtualOffset) > 1) playClick();
       resetIdle();
     });
+    window.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      if (expandedCardIdx !== -1) return;
+      targetOffset -= e.deltaY * 0.8;
+      playSwipe(0.3);
+      resetIdle();
+    }, {passive:false});
+    window.addEventListener('keydown', (e) => {
+      if (expandedCardIdx !== -1) {
+        if (e.key === 'Escape') collapseCard();
+        return;
+      }
+      if (e.key === 'ArrowLeft') { targetOffset -= totalCardSpace; resetIdle(); playClick(); }
+      else if (e.key === 'ArrowRight') { targetOffset += totalCardSpace; resetIdle(); playClick(); }
+    });
 
-    // Double‑tap / double‑click to expand
-    body.addEventListener('dblclick', (e) => {
-      if (isDragging || expandedCardIndex !== -1) return;
-      // find closest card to pointer
+    // Hover detection (non-dragging)
+    carousel.addEventListener('pointermove', (e) => {
+      if (isDragging || expandedCardIdx !== -1) return;
+      const target = e.target.closest('.card');
+      if (target) {
+        const idx = cardElements.indexOf(target);
+        hoverCardIdx = idx;
+      } else hoverCardIdx = -1;
+    });
+    carousel.addEventListener('pointerleave', () => { hoverCardIdx = -1; });
+
+    // Double‑click expand
+    carousel.addEventListener('dblclick', (e) => {
+      if (isDragging || expandedCardIdx !== -1) return;
       const target = e.target.closest('.card');
       if (!target) return;
       const idx = cardElements.indexOf(target);
       if (idx !== -1) expandCard(idx);
     });
 
-    // Wheel support
-    window.addEventListener('wheel', (e) => {
-      e.preventDefault();
-      if (expandedCardIndex !== -1) return;
-      targetOffset -= e.deltaY * 0.8;
-      resetIdle();
-    }, { passive: false });
-
-    // ─────────────────────── INFINITE WRAPPING ──────────────
+    // ────────────────── CARD UPDATES & INFINITE WRAPPING ─────
     function updateCards() {
-      // Calculate which virtual index is closest to center (active)
-      const activeVirtualIndex = Math.round(targetOffset / totalCardSpace);
-
+      const activeVirtual = Math.round(targetOffset / totalCardSpace);
       cardElements.forEach((card, i) => {
-        // Determine current virtual index for this card element
         let virtIdx = baseIndices[i];
-        // Compute raw visual offset using virtual index
         let rawX = (virtIdx - centerIndex) * totalCardSpace + virtualOffset;
-        
-        // Wrapping logic: if card is too far left/right, adjust its virtual index
-        if (rawX < -totalWidth * 0.8) {
-          baseIndices[i] += cardCount;
-          virtIdx = baseIndices[i];
-          rawX = (virtIdx - centerIndex) * totalCardSpace + virtualOffset;
-        } else if (rawX > totalWidth * 0.8) {
-          baseIndices[i] -= cardCount;
-          virtIdx = baseIndices[i];
-          rawX = (virtIdx - centerIndex) * totalCardSpace + virtualOffset;
-        }
-        
-        const distance = Math.abs(rawX);
-        const maxDistance = totalCardSpace * 2.5;
-        const scale = Math.max(0.55, 1 - (distance / maxDistance) * 0.5);
-        const zTranslate = -distance * 0.7;
-        const rotateY = (rawX / (totalCardSpace * 2)) * 18;
-        const opacity = Math.max(0.25, 1 - distance / (maxDistance * 1.1));
-        const blurAmount = Math.min(distance / 140, 3);
 
-        card.style.filter = `blur(${blurAmount}px)`;
-        card.style.transform = `
-          translateX(${rawX}px)
-          translateZ(${zTranslate}px)
-          rotateY(${rotateY}deg)
-          scale(${scale})
-        `;
+        // Wrap extreme positions
+        if (rawX < -totalCardSpace*cardCount*0.6) { baseIndices[i] += cardCount; virtIdx += cardCount; rawX += cardCount*totalCardSpace; }
+        else if (rawX > totalCardSpace*cardCount*0.6) { baseIndices[i] -= cardCount; virtIdx -= cardCount; rawX -= cardCount*totalCardSpace; }
+
+        const dist = Math.abs(rawX);
+        const maxDist = totalCardSpace*2.5;
+        const scale = Math.max(0.55, 1 - (dist/maxDist)*0.5);
+        const z = -dist*0.7;
+        const rotY = (rawX/(totalCardSpace*2))*18;
+        const opacity = Math.max(0.25, 1 - dist/(maxDist*1.1));
+        const blur = Math.min(dist/140, 3);
+
+        card.style.filter = `blur(${blur}px)`;
+        card.style.transform = `translateX(${rawX}px) translateZ(${z}px) rotateY(${rotY}deg) scale(${scale})`;
         card.style.opacity = opacity;
-        card.style.zIndex = Math.round(100 - distance);
+        card.style.zIndex = Math.round(100 - dist);
 
-        // Highlight active card (nearest to center)
-        const isActive = (virtIdx === activeVirtualIndex);
+        // Store values for hover lift
+        card.style.setProperty('--tx', `${rawX}px`);
+        card.style.setProperty('--ry', `${rotY}deg`);
+        card.style.setProperty('--s', scale);
+
+        const isActive = (virtIdx === activeVirtual);
         card.classList.toggle('active', isActive);
 
-        // Per‑card shine
+        // Per-card shine
         const rect = card.getBoundingClientRect();
-        const cx = rect.left + rect.width/2;
-        const cy = rect.top + rect.height/2;
-        const relX = ((mouseScreenX - cx)/rect.width)*100 + 50;
-        const relY = ((mouseScreenY - cy)/rect.height)*100 + 50;
+        const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
+        const relX = ((mouseX - cx)/rect.width)*100 + 50;
+        const relY = ((mouseY - cy)/rect.height)*100 + 50;
         card.style.setProperty('--shine-x', `${relX}%`);
         card.style.setProperty('--shine-y', `${relY}%`);
-        const distCursor = Math.hypot(mouseScreenX-cx, mouseScreenY-cy);
-        card.classList.toggle('shine', distCursor < 200 && distance < totalCardSpace*1.5);
+        const distCursor = Math.hypot(mouseX-cx, mouseY-cy);
+        card.classList.toggle('shine', distCursor<200 && dist<totalCardSpace*1.5);
       });
 
-      // Update progress dots (modulo cardCount)
-      const activeMod = ((activeVirtualIndex % cardCount) + cardCount) % cardCount;
+      // Hover lift: apply class to hovered card if not active expanded
+      cardElements.forEach((card, i) => {
+        card.classList.toggle('hover-lift', i === hoverCardIdx && !isDragging && expandedCardIdx === -1);
+      });
+
+      // Progress dots
+      const activeMod = ((activeVirtual % cardCount) + cardCount) % cardCount;
       dots.forEach((dot, i) => dot.classList.toggle('active', i === activeMod));
 
-      // Dynamic background tint based on active card
+      // Snap sound detection
+      if (activeVirtual !== lastSnappedVirtual) {
+        playClick();
+        lastSnappedVirtual = activeVirtual;
+      }
+
+      // Dynamic background
       const activeColor = colors[activeMod][0];
-      body.style.background = `radial-gradient(ellipse at center, ${activeColor}20, #04040e 70%)`;
+      body.style.background = `radial-gradient(ellipse at center, ${activeColor}30, #050510 75%)`;
     }
 
-    // ─────────────────────── EXPAND / COLLAPSE ──────────────
+    // ────────────────── CAROUSEL TILT & GLARE ──────────────────
+    function updateTiltGlare() {
+      const tiltX = ((mouseY / innerHeight)-0.5) * -10;
+      const tiltY = ((mouseX / innerWidth)-0.5) * 16;
+      carousel.style.transform = `translate(-50%, -50%) rotateX(${tiltX}deg) rotateY(${tiltY}deg)`;
+      const gx = (mouseX/innerWidth)*100, gy = (mouseY/innerHeight)*100;
+      glare.style.background = `radial-gradient(circle at ${gx}% ${gy}%, rgba(255,255,255,0.1) 0%, transparent 65%)`;
+    }
+
+    // ────────────────── EXPAND / COLLAPSE ──────────────────
     function expandCard(index) {
-      if (expandedCardIndex !== -1) return;
-      expandedCardIndex = index;
+      if (expandedCardIdx !== -1) return;
+      expandedCardIdx = index;
       cardElements[index].classList.add('expanded');
       body.classList.add('expanded');
-      // Show backdrop
       backdrop.style.opacity = '1';
       body.style.cursor = 'default';
-      // Stop auto‑play while expanded
       resetIdle();
+      playClick();
     }
-
     function collapseCard() {
-      if (expandedCardIndex === -1) return;
-      cardElements[expandedCardIndex].classList.remove('expanded');
+      if (expandedCardIdx === -1) return;
+      cardElements[expandedCardIdx].classList.remove('expanded');
       body.classList.remove('expanded');
       backdrop.style.opacity = '0';
-      expandedCardIndex = -1;
+      expandedCardIdx = -1;
       body.style.cursor = 'grab';
+      playClick();
     }
-
     backdrop.addEventListener('click', collapseCard);
-    // Close with Escape key
-    window.addEventListener('keydown', (e) => { if (e.key === 'Escape') collapseCard(); });
 
-    // ─────────────────────── CAROUSEL TILT ──────────────────
-    function updateCarouselTilt() {
-      const tiltX = ((mouseScreenY / window.innerHeight) - 0.5) * -10;
-      const tiltY = ((mouseScreenX / window.innerWidth) - 0.5) * 16;
-      carousel.style.transform = `translate(-50%, -50%) rotateX(${tiltX}deg) rotateY(${tiltY}deg)`;
-    }
-
-    // ─────────────────────── GLOBAL GLARE ───────────────────
-    function updateGlare() {
-      const x = (mouseScreenX / window.innerWidth) * 100;
-      const y = (mouseScreenY / window.innerHeight) * 100;
-      glare.style.background = `radial-gradient(circle at ${x}% ${y}%, rgba(255,255,255,0.12) 0%, transparent 65%)`;
-    }
-
-    // ─────────────────────── AUTO‑PLAY ──────────────────────
-    function updateAutoPlay(dt) {
-      if (isDragging || expandedCardIndex !== -1) return;
+    // ────────────────── AUTO-PLAY ──────────────────
+    function autoPlay(dt) {
+      if (isDragging || expandedCardIdx !== -1) return;
       idleTime += dt;
       if (idleTime > autoAdvanceDelay) {
         const currentSnap = Math.round(targetOffset / totalCardSpace) * totalCardSpace;
-        targetOffset = currentSnap + autoPlayDirection * totalCardSpace;
+        targetOffset = currentSnap + autoPlayDir * totalCardSpace;
         idleTime = 0;
       }
     }
 
-    // ─────────────────────── ANIMATION LOOP ─────────────────
-    let lastFrameTime = performance.now();
+    // ────────────────── ANIMATION LOOP ──────────────────
+    let lastFrame = performance.now();
     function animate(now) {
-      const dt = now - lastFrameTime;
-      lastFrameTime = now;
-      
-      updateAutoPlay(dt);
+      const dt = now - lastFrame; lastFrame = now;
+      autoPlay(dt);
 
       if (!isDragging) {
         const diff = targetOffset - virtualOffset;
         if (Math.abs(diff) > 0.1) {
-          velocity += diff * springStiffness;
-          velocity *= springDamping;
+          velocity += diff * stiffness;
+          velocity *= damping;
           virtualOffset += velocity;
         } else {
           virtualOffset = targetOffset;
@@ -465,79 +505,74 @@
       }
 
       updateCards();
-      updateCarouselTilt();
-      updateGlare();
-
+      updateTiltGlare();
       requestAnimationFrame(animate);
     }
 
-    // ─────────────────────── PARTICLES ───────────────────────
+    // ────────────────── PARTICLES (dynamic constellation) ─────
     const canvas = document.getElementById('particles');
     const ctx = canvas.getContext('2d');
-    let width, height;
+    let w, h;
     let particles = [];
 
     function resizeCanvas() {
-      width = window.innerWidth;
-      height = window.innerHeight;
-      canvas.width = width;
-      canvas.height = height;
+      w = innerWidth; h = innerHeight;
+      canvas.width = w; canvas.height = h;
       if (particles.length === 0) initParticles();
     }
     window.addEventListener('resize', resizeCanvas);
 
     function initParticles() {
       particles = [];
-      for (let i = 0; i < 130; i++) {
+      for (let i=0;i<130;i++) {
         particles.push({
-          x: Math.random() * width,
-          y: Math.random() * height,
-          vx: (Math.random() - 0.5) * 0.3,
-          vy: (Math.random() - 0.5) * 0.3,
-          radius: Math.random() * 2 + 1,
-          color: `hsl(${260 + Math.random()*40}, 80%, 70%)`,
+          x: Math.random()*w, y: Math.random()*h,
+          vx: (Math.random()-0.5)*0.25, vy: (Math.random()-0.5)*0.25,
+          radius: Math.random()*2+1,
+          hue: 260 + Math.random()*40,
         });
       }
     }
 
     function drawParticles() {
-      ctx.clearRect(0, 0, width, height);
-      // update & maybe attract to active card
-      let activeScreenX = width/2, activeScreenY = height/2;
-      if (expandedCardIndex !== -1) {
-        const rect = cardElements[expandedCardIndex].getBoundingClientRect();
-        activeScreenX = rect.left + rect.width/2;
-        activeScreenY = rect.top + rect.height/2;
-      }
-      for (let p of particles) {
-        // gentle attraction towards active card
-        const dx = activeScreenX - p.x;
-        const dy = activeScreenY - p.y;
-        const dist = Math.sqrt(dx*dx+dy*dy) || 1;
-        const force = 0.0002;
-        p.vx += (dx / dist) * force;
-        p.vy += (dy / dist) * force;
-        p.vx *= 0.999;
-        p.vy *= 0.999;
-        p.x += p.vx;
-        p.y += p.vy;
-        if (p.x < 0) p.x = width;
-        if (p.x > width) p.x = 0;
-        if (p.y < 0) p.y = height;
-        if (p.y > height) p.y = 0;
+      ctx.clearRect(0,0,w,h);
+      // Attract to active / expanded card center
+      let attractX = w/2, attractY = h/2;
+      if (expandedCardIdx !== -1) {
+        const rect = cardElements[expandedCardIdx].getBoundingClientRect();
+        attractX = rect.left + rect.width/2;
+        attractY = rect.top + rect.height/2;
+      } else {
+        const activeMod = ((Math.round(targetOffset/totalCardSpace) % cardCount) + cardCount) % cardCount;
+        const activeCard = cardElements[activeMod];
+        if (activeCard) {
+          const rect = activeCard.getBoundingClientRect();
+          attractX = rect.left + rect.width/2;
+          attractY = rect.top + rect.height/2;
+        }
       }
 
-      // Draw constellations
-      const threshold = 110;
+      for (let p of particles) {
+        const dx = attractX - p.x, dy = attractY - p.y;
+        const dist = Math.sqrt(dx*dx+dy*dy) || 1;
+        const force = 0.00018;
+        p.vx += (dx/dist)*force; p.vy += (dy/dist)*force;
+        p.vx *= 0.999; p.vy *= 0.999;
+        p.x += p.vx; p.y += p.vy;
+        if (p.x<0)p.x=w; if(p.x>w)p.x=0;
+        if(p.y<0)p.y=h; if(p.y>h)p.y=0;
+      }
+
+      // Draw connections
       ctx.beginPath();
       ctx.strokeStyle = 'rgba(167,139,250,0.08)';
       ctx.lineWidth = 0.6;
-      for (let i = 0; i < particles.length; i++) {
-        for (let j = i+1; j < particles.length; j++) {
+      const threshold = 120;
+      for (let i=0;i<particles.length;i++) {
+        for (let j=i+1;j<particles.length;j++) {
           const dx = particles[i].x - particles[j].x;
           const dy = particles[i].y - particles[j].y;
-          const dist = Math.sqrt(dx*dx+dy*dy);
-          if (dist < threshold) {
+          if (Math.sqrt(dx*dx+dy*dy) < threshold) {
             ctx.moveTo(particles[i].x, particles[i].y);
             ctx.lineTo(particles[j].x, particles[j].y);
           }
@@ -549,8 +584,8 @@
       for (let p of particles) {
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.radius, 0, Math.PI*2);
-        ctx.fillStyle = p.color;
-        ctx.shadowColor = p.color;
+        ctx.fillStyle = `hsl(${p.hue}, 80%, 70%)`;
+        ctx.shadowColor = `hsl(${p.hue}, 80%, 70%)`;
         ctx.shadowBlur = 10;
         ctx.fill();
       }
@@ -558,15 +593,15 @@
       requestAnimationFrame(drawParticles);
     }
 
-    // ─────────────────────── START ──────────────────────────
+    // ────────────────── START ──────────────────
     resizeCanvas();
     initParticles();
     drawParticles();
     requestAnimationFrame(animate);
-
-    // Global glare visibility
-    window.addEventListener('pointermove', () => { glare.style.opacity = '1'; });
-    window.addEventListener('pointerleave', () => { glare.style.opacity = '0'; });
+    glare.style.opacity = '1';
+    window.addEventListener('pointermove', ()=>glare.style.opacity='1');
+    window.addEventListener('pointerleave', ()=>glare.style.opacity='0');
+    lastSnappedVirtual = Math.round(virtualOffset/totalCardSpace);
   </script>
 </body>
 </html>
