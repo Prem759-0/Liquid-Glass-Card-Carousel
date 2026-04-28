@@ -244,6 +244,58 @@
   window.addEventListener('pointerleave', () => {
     glare.style.opacity = '0';
   });
+      const canvas = document.getElementById('particles');
+  const ctx = canvas.getContext('2d');
+  let width, height;
+  let particlesArray = [];
+
+  function resizeCanvas() {
+    width = window.innerWidth;
+    height = window.innerHeight;
+    canvas.width = width;
+    canvas.height = height;
+    initParticles();
+  }
+  window.addEventListener('resize', resizeCanvas);
+
+  function initParticles() {
+    particlesArray = [];
+    const count = 100;
+    for (let i = 0; i < count; i++) {
+      particlesArray.push({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        vx: (Math.random() - 0.5) * 0.3,
+        vy: (Math.random() - 0.5) * 0.3,
+        radius: Math.random() * 2 + 1,
+        color: `hsl(${260 + Math.random() * 40}, 80%, 70%)`,
+      });
+    }
+  }
+
+  function drawParticles() {
+    ctx.clearRect(0, 0, width, height);
+    for (let p of particlesArray) {
+      p.x += p.vx;
+      p.y += p.vy;
+      if (p.x < 0) p.x = width;
+      if (p.x > width) p.x = 0;
+      if (p.y < 0) p.y = height;
+      if (p.y > height) p.y = 0;
+
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+      ctx.fillStyle = p.color;
+      ctx.shadowColor = p.color;
+      ctx.shadowBlur = 10;
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0; // reset for performance
+    requestAnimationFrame(drawParticles);
+  }
+
+  resizeCanvas();
+  drawParticles();
 </script>
 </body>
 </html>
