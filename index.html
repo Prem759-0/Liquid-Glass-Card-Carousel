@@ -5,297 +5,254 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Liquid Glass Carousel</title>
   <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    background: #0a0a14;
-    height: 100vh;
-    width: 100vw;
-    overflow: hidden;
-    font-family: 'Segoe UI', system-ui, sans-serif;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: grab;
-    user-select: none;
-    touch-action: pan-y; /* allow vertical only for native gestures */
-  }
-  body.dragging { cursor: grabbing; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0a0a14;
+      height: 100vh; width: 100vw;
+      overflow: hidden;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      display: flex;
+      align-items: center; justify-content: center;
+      cursor: grab;
+      user-select: none;
+      touch-action: pan-y;
+    }
+    body.dragging { cursor: grabbing; }
 
-  canvas#particles {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    z-index: 0;
-    pointer-events: none;
-  }
+    canvas#particles {
+      position: fixed; top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 0; pointer-events: none;
+    }
 
-  .carousel-wrapper {
-    position: relative;
-    z-index: 2;
-    perspective: 1200px;
-    width: 90vw;
-    max-width: 700px;
-    height: 400px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
+    .carousel-wrapper {
+      position: relative; z-index: 2;
+      perspective: 1200px;
+      width: 90vw; max-width: 700px;
+      height: 400px;
+      display: flex;
+      align-items: center; justify-content: center;
+    }
 
-  .carousel {
-    display: flex;
-    gap: 0;
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform-style: preserve-3d;
-    will-change: transform;
-  }
+    .carousel {
+      position: absolute; left: 50%; top: 50%;
+      transform-style: preserve-3d;
+      will-change: transform;
+    }
 
-  .card {
-    position: absolute;
-    width: 220px;
-    height: 300px;
-    left: 50%; top: 50%;
-    margin-left: -110px;
-    margin-top: -150px;
-    border-radius: 2rem;
-    background: rgba(255,255,255,0.05);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
-    border: 1px solid rgba(255,255,255,0.15);
-    box-shadow: 0 30px 50px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.2);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 0.9rem;
-    transition: border-color 0.3s;
-    transform-style: preserve-3d;
-    will-change: transform;
-  }
-  .card h2 {
-    font-weight: 500;
-    font-size: 2rem;
-    margin: 0;
-    background: linear-gradient(135deg, #c084fc, #60a5fa);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-  .card p {
-    opacity: 0.7;
-    margin-top: 0.5rem;
-  }
+    .card {
+      position: absolute;
+      width: 220px; height: 300px;
+      left: 50%; top: 50%;
+      margin-left: -110px; margin-top: -150px;
+      border-radius: 2rem;
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid rgba(255,255,255,0.15);
+      box-shadow: 0 30px 50px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.2);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      color: white; font-size: 0.9rem;
+      transition: border-color 0.3s;
+      transform-style: preserve-3d;
+      will-change: transform;
+    }
+    .card h2 {
+      font-weight: 500; font-size: 2rem; margin: 0;
+      background: linear-gradient(135deg, var(--g1, #c084fc), var(--g2, #60a5fa));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .card p { opacity: 0.7; margin-top: 0.5rem; }
 
-  /* Glare overlay */
-  .glare {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    pointer-events: none;
-    z-index: 10;
-    background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.15) 0%, transparent 60%);
-    mix-blend-mode: overlay;
-    opacity: 0;
-    transition: opacity 0.2s;
-  }
-</style>
+    .glare {
+      position: fixed; top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none; z-index: 10;
+      background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.15) 0%, transparent 60%);
+      mix-blend-mode: overlay; opacity: 0;
+      transition: opacity 0.2s;
+    }
+  </style>
 </head>
 <body>
   <canvas id="particles"></canvas>
   <div class="carousel-wrapper">
     <div class="carousel" id="carousel"></div>
   </div>
-  <!-- Glare overlay (moves with cursor) -->
   <div class="glare" id="glare"></div>
+
   <script>
-  const carousel = document.getElementById('carousel');
-  const cardCount = 8;
-  const cardWidth = 220;
-  const cardGap = 40;         // space between card centers
-  const totalCardSpace = cardWidth + cardGap;
-  const centerIndex = Math.floor(cardCount / 2);
+    // --- DOM ---
+    const carousel = document.getElementById('carousel');
+    const glare = document.getElementById('glare');
+    const body = document.body;
 
-  const colors = [
-    ['#a78bfa', '#f472b6'], ['#38bdf8', '#2dd4bf'],
-    ['#fb923c', '#fbbf24'], ['#4ade80', '#a3e635'],
-    ['#f87171', '#fb7185'], ['#c084fc', '#e879f9'],
-    ['#60a5fa', '#818cf8'], ['#34d399', '#6ee7b7']
-  ];
+    // --- Card setup ---
+    const cardCount = 8;
+    const cardWidth = 220;
+    const cardGap = 40;
+    const totalCardSpace = cardWidth + cardGap;
+    const centerIndex = Math.floor(cardCount / 2);
 
-  for (let i = 0; i < cardCount; i++) {
-    const card = document.createElement('div');
-    card.className = 'card';
-    card.innerHTML = `
-      <span style="font-size:3rem">${['🎨','🚀','🌈','💎','🔮','🎵','✨','🪐'][i]}</span>
-      <h2>Card ${i+1}</h2>
-      <p>Premium glass card</p>
-    `;
-    // Unique gradient for each card (via CSS vars)
-    card.style.setProperty('--g1', colors[i][0]);
-    card.style.setProperty('--g2', colors[i][1]);
-    carousel.appendChild(card);
-  }
-      // --- Physics state ---
-  let xOffset = 0;            // current translation (pixels)
-  let velocity = 0;
-  let isDragging = false;
-  let lastPointerX = 0;
-  let lastTime = 0;
+    const colors = [
+      ['#a78bfa','#f472b6'], ['#38bdf8','#2dd4bf'],
+      ['#fb923c','#fbbf24'], ['#4ade80','#a3e635'],
+      ['#f87171','#fb7185'], ['#c084fc','#e879f9'],
+      ['#60a5fa','#818cf8'], ['#34d399','#6ee7b7']
+    ];
 
-  const friction = 0.92;      // deceleration each frame
-  const springStiffness = 0.06;
-  const springDamping = 0.8;
+    for (let i = 0; i < cardCount; i++) {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <span style="font-size:3rem">${['🎨','🚀','🌈','💎','🔮','🎵','✨','🪐'][i]}</span>
+        <h2>Card ${i+1}</h2>
+        <p>Premium glass</p>
+      `;
+      card.style.setProperty('--g1', colors[i][0]);
+      card.style.setProperty('--g2', colors[i][1]);
+      carousel.appendChild(card);
+    }
 
-  // Pointers
-  const body = document.body;
+    // --- Physics ---
+    let xOffset = 0;
+    let velocity = 0;
+    let isDragging = false;
+    let lastPointerX = 0;
+    let lastTime = 0;
+    const friction = 0.92;
+    const springStiffness = 0.06;
+    const springDamping = 0.8;
 
-  body.addEventListener('pointerdown', (e) => {
-    isDragging = true;
-    lastPointerX = e.clientX;
-    lastTime = performance.now();
-    body.classList.add('dragging');
-    body.setPointerCapture(e.pointerId);
-  });
+    body.addEventListener('pointerdown', (e) => {
+      isDragging = true;
+      lastPointerX = e.clientX;
+      lastTime = performance.now();
+      body.classList.add('dragging');
+      body.setPointerCapture(e.pointerId);
+    });
 
-  body.addEventListener('pointermove', (e) => {
-    if (!isDragging) return;
-    const currentX = e.clientX;
-    const currentTime = performance.now();
-    const deltaX = currentX - lastPointerX;
-    const deltaTime = Math.max(currentTime - lastTime, 1); // ms
+    body.addEventListener('pointermove', (e) => {
+      if (!isDragging) return;
+      const currentX = e.clientX;
+      const currentTime = performance.now();
+      const deltaX = currentX - lastPointerX;
+      const deltaTime = Math.max(currentTime - lastTime, 1);
+      xOffset += deltaX;
+      velocity = deltaX / deltaTime;
+      lastPointerX = currentX;
+      lastTime = currentTime;
+    });
 
-    // Update offset and instantaneous velocity (pixels per ms)
-    xOffset += deltaX;
-    velocity = deltaX / deltaTime;
-    lastPointerX = currentX;
-    lastTime = currentTime;
+    body.addEventListener('pointerup', () => {
+      isDragging = false;
+      body.classList.remove('dragging');
+    });
 
-    // Clamp to avoid infinite drag (soft limit later)
-  });
+    // --- Card transformation ---
+    function updateCards() {
+      const cards = document.querySelectorAll('.card');
+      cards.forEach((card, index) => {
+        const baseX = (index - centerIndex) * totalCardSpace + xOffset;
+        const distance = Math.abs(baseX);
+        const maxDistance = totalCardSpace * 2;
+        const scale = Math.max(0.6, 1 - (distance / maxDistance) * 0.5);
+        const zTranslate = -distance * 0.6;
+        const rotateY = (baseX / (totalCardSpace * 2)) * 20;
+        const opacity = Math.max(0.3, 1 - distance / (maxDistance * 1.2));
 
-  body.addEventListener('pointerup', () => {
-    isDragging = false;
-    body.classList.remove('dragging');
-  });
-      function animateCarousel() {
-    if (!isDragging) {
-      // Apply friction
-      velocity *= friction;
+        card.style.transform = `
+          translateX(${baseX}px)
+          translateZ(${zTranslate}px)
+          rotateY(${rotateY}deg)
+          scale(${scale})
+        `;
+        card.style.opacity = opacity;
+        card.style.zIndex = Math.round(100 - distance);
+      });
+    }
 
-      // Snap target: nearest card (in terms of offset)
-      const snappedOffset = Math.round(xOffset / totalCardSpace) * totalCardSpace;
-      // Spring equation toward snappedOffset
-      const force = (snappedOffset - xOffset) * springStiffness;
-      velocity += force;
-      velocity *= springDamping;   // additional damping
-      xOffset += velocity;
+    // --- Animation loop ---
+    function animateCarousel() {
+      if (!isDragging) {
+        velocity *= friction;
+        const snappedOffset = Math.round(xOffset / totalCardSpace) * totalCardSpace;
+        const force = (snappedOffset - xOffset) * springStiffness;
+        velocity += force;
+        velocity *= springDamping;
+        xOffset += velocity;
+        if (Math.abs(velocity) < 0.01 && Math.abs(snappedOffset - xOffset) < 0.5) {
+          xOffset = snappedOffset;
+          velocity = 0;
+        }
+      }
+      updateCards();
+      requestAnimationFrame(animateCarousel);
+    }
+    animateCarousel();
 
-      // Stop tiny movements
-      if (Math.abs(velocity) < 0.01 && Math.abs(snappedOffset - xOffset) < 0.5) {
-        xOffset = snappedOffset;
-        velocity = 0;
+    // --- Dynamic glare ---
+    window.addEventListener('pointermove', (e) => {
+      const x = (e.clientX / window.innerWidth) * 100;
+      const y = (e.clientY / window.innerHeight) * 100;
+      glare.style.background = `radial-gradient(circle at ${x}% ${y}%, rgba(255,255,255,0.2) 0%, transparent 60%)`;
+      glare.style.opacity = '1';
+    });
+    window.addEventListener('pointerleave', () => glare.style.opacity = '0');
+
+    // --- Particle background ---
+    const canvas = document.getElementById('particles');
+    const ctx = canvas.getContext('2d');
+    let width, height;
+    let particlesArray = [];
+
+    function resizeCanvas() {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = width;
+      canvas.height = height;
+      initParticles();
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    function initParticles() {
+      particlesArray = [];
+      for (let i = 0; i < 100; i++) {
+        particlesArray.push({
+          x: Math.random() * width,
+          y: Math.random() * height,
+          vx: (Math.random() - 0.5) * 0.3,
+          vy: (Math.random() - 0.5) * 0.3,
+          radius: Math.random() * 2 + 1,
+          color: `hsl(${260 + Math.random() * 40}, 80%, 70%)`,
+        });
       }
     }
 
-    // Update card transforms
-    updateCards();
-
-    requestAnimationFrame(animateCarousel);
-  }
-
-  animateCarousel();
-      function updateCards() {
-    const cards = document.querySelectorAll('.card');
-    cards.forEach((card, index) => {
-      // Calculate the card's intended position (center of carousel offset)
-      const baseX = (index - centerIndex) * totalCardSpace + xOffset;
-      // Distance from 0 (center)
-      const distance = Math.abs(baseX);
-      const maxDistance = totalCardSpace * 2;
-
-      // Scale down cards far from center
-      const scale = Math.max(0.6, 1 - (distance / maxDistance) * 0.5);
-      // Z translation to create depth
-      const zTranslate = -distance * 0.6;
-      // Y rotation (cards slightly face center)
-      const rotateY = (baseX / (totalCardSpace * 2)) * 20; // deg
-
-      // Opacity fade
-      const opacity = Math.max(0.3, 1 - distance / (maxDistance * 1.2));
-
-      card.style.transform = `
-        translateX(${baseX}px)
-        translateZ(${zTranslate}px)
-        rotateY(${rotateY}deg)
-        scale(${scale})
-      `;
-      card.style.opacity = opacity;
-      card.style.zIndex = Math.round(100 - distance);
-    });
-  }
-      const glare = document.getElementById('glare');
-  window.addEventListener('pointermove', (e) => {
-    const x = (e.clientX / window.innerWidth) * 100;
-    const y = (e.clientY / window.innerHeight) * 100;
-    glare.style.background = `radial-gradient(circle at ${x}% ${y}%, rgba(255,255,255,0.2) 0%, transparent 60%)`;
-    glare.style.opacity = '1';
-  });
-  window.addEventListener('pointerleave', () => {
-    glare.style.opacity = '0';
-  });
-      const canvas = document.getElementById('particles');
-  const ctx = canvas.getContext('2d');
-  let width, height;
-  let particlesArray = [];
-
-  function resizeCanvas() {
-    width = window.innerWidth;
-    height = window.innerHeight;
-    canvas.width = width;
-    canvas.height = height;
-    initParticles();
-  }
-  window.addEventListener('resize', resizeCanvas);
-
-  function initParticles() {
-    particlesArray = [];
-    const count = 100;
-    for (let i = 0; i < count; i++) {
-      particlesArray.push({
-        x: Math.random() * width,
-        y: Math.random() * height,
-        vx: (Math.random() - 0.5) * 0.3,
-        vy: (Math.random() - 0.5) * 0.3,
-        radius: Math.random() * 2 + 1,
-        color: `hsl(${260 + Math.random() * 40}, 80%, 70%)`,
-      });
+    function drawParticles() {
+      ctx.clearRect(0, 0, width, height);
+      for (let p of particlesArray) {
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.x < 0) p.x = width;
+        if (p.x > width) p.x = 0;
+        if (p.y < 0) p.y = height;
+        if (p.y > height) p.y = 0;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI*2);
+        ctx.fillStyle = p.color;
+        ctx.shadowColor = p.color;
+        ctx.shadowBlur = 10;
+        ctx.fill();
+      }
+      ctx.shadowBlur = 0;
+      requestAnimationFrame(drawParticles);
     }
-  }
 
-  function drawParticles() {
-    ctx.clearRect(0, 0, width, height);
-    for (let p of particlesArray) {
-      p.x += p.vx;
-      p.y += p.vy;
-      if (p.x < 0) p.x = width;
-      if (p.x > width) p.x = 0;
-      if (p.y < 0) p.y = height;
-      if (p.y > height) p.y = 0;
-
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-      ctx.fillStyle = p.color;
-      ctx.shadowColor = p.color;
-      ctx.shadowBlur = 10;
-      ctx.fill();
-    }
-    ctx.shadowBlur = 0; // reset for performance
-    requestAnimationFrame(drawParticles);
-  }
-
-  resizeCanvas();
-  drawParticles();
-</script>
+    resizeCanvas();
+    drawParticles();
+  </script>
 </body>
 </html>
